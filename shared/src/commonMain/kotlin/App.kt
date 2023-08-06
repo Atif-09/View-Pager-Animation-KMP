@@ -41,6 +41,7 @@ import org.jetbrains.compose.resources.resource
 import kotlin.math.absoluteValue
 import kotlin.math.min
 
+
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 fun App() {
@@ -70,8 +71,9 @@ fun App() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            GateAnimation(listOfIsland, bitMapImages.value)
 
-            CubePager(listOfIsland, bitMapImages.value)
+//            CubePager(listOfIsland, bitMapImages.value)
 
 //            FadeAnimation(listOfIsland, bitMapImages.value)
         }
@@ -201,10 +203,64 @@ fun FadeAnimation(itemList: List<IslandDataClass>, image: Map<Int, ImageBitmap>)
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun GateAnimation(itemList: List<IslandDataClass>, image: Map<Int, ImageBitmap>) {
+    val pagerState = rememberPagerState()
+
+    HorizontalPager(
+        pageCount = itemList.size,
+        state = pagerState,
+        pageSize = PageSize.Fill
+    ) { index ->
+
+        Box(
+            modifier = Modifier.fillMaxSize().pagerGateTransition(index, pagerState)
+        ) {
+            image[itemList[index].id]?.let {
+                Image(
+                    bitmap = it, // Retrieve the ImageBitmap from the map using the item's id as the key
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(30.dp)),
+                )
+            }
+
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+fun Modifier.pagerGateTransition(page: Int, pagerState: PagerState) = graphicsLayer {
+    // Calculate the absolute offset for the current page from the
+    // scroll position.
+    val pageOffset = pagerState.calculateCurrentOffsetForPage(page)
+    translationX = pageOffset * size.width
+
+    if (pageOffset < -1f) {
+        // page is far off screen
+        alpha = 0f
+    } else if (pageOffset <= 0) {
+        // page is to the right of the selected page or the selected page
+        alpha = 1f
+        transformOrigin = TransformOrigin(1f, 0.5f)
+        rotationY = -90f * pageOffset.absoluteValue
+
+    } else if (pageOffset <= 1) {
+        // page is to the left of the selected page
+        alpha = 1f
+        transformOrigin = TransformOrigin(0f, 0.5f)
+        rotationY = 90f * pageOffset.absoluteValue
+    } else {
+        alpha = 0f
+    }
+}
+
 // extension method for current page offset
 @OptIn(ExperimentalFoundationApi::class)
 fun PagerState.calculateCurrentOffsetForPage(page: Int): Float {
     return (currentPage - page) + currentPageOffsetFraction
 }
+
 
 expect fun getPlatformName(): String

@@ -71,7 +71,9 @@ fun App() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            GateAnimation(listOfIsland, bitMapImages.value)
+
+            CubeInDepthTransition(listOfIsland, bitMapImages.value)
+//            GateAnimation(listOfIsland, bitMapImages.value)
 
 //            CubePager(listOfIsland, bitMapImages.value)
 
@@ -156,7 +158,6 @@ fun CubePager(itemList: List<IslandDataClass>, image: Map<Int, ImageBitmap>) {
         }
     }
 }
-
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -260,6 +261,68 @@ fun Modifier.pagerGateTransition(page: Int, pagerState: PagerState) = graphicsLa
 @OptIn(ExperimentalFoundationApi::class)
 fun PagerState.calculateCurrentOffsetForPage(page: Int): Float {
     return (currentPage - page) + currentPageOffsetFraction
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun CubeInDepthTransition(
+    itemList: List<IslandDataClass>,
+    image: Map<Int, ImageBitmap>
+) {
+    val pagerState = rememberPagerState()
+    HorizontalPager(
+        pageCount = itemList.size,
+        state = pagerState,
+        pageSize = PageSize.Fill
+    ) { page ->
+        Box(
+            Modifier
+                .pagerCubeInDepthTransition(page, pagerState)
+                .fillMaxSize()
+        ) {
+            image[itemList[page].id]?.let {
+                Image(
+                    bitmap = it, // Retrieve the ImageBitmap from the map using the item's id as the key
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(30.dp)),
+                )
+            }
+
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+fun Modifier.pagerCubeInDepthTransition(page: Int, pagerState: PagerState) = graphicsLayer {
+    cameraDistance = 32f
+    // Calculate the absolute offset for the current page from the
+    // scroll position.
+    val pageOffset = pagerState.calculateCurrentOffsetForPage(page)
+
+    if (pageOffset < -1f) {
+        // page is far off screen
+        alpha = 0f
+    } else if (pageOffset <= 0) {
+        // page is to the right of the selected page or the selected page
+        alpha = 1f
+        transformOrigin = TransformOrigin(0f, 0.5f)
+        rotationY = -90f * pageOffset.absoluteValue
+
+    } else if (pageOffset <= 1) {
+        // page is to the left of the selected page
+        alpha = 1f
+        transformOrigin = TransformOrigin(1f, 0.5f)
+        rotationY = 90f * pageOffset.absoluteValue
+    } else {
+        alpha = 0f
+    }
+
+    if (pageOffset.absoluteValue <= 0.5) {
+        scaleY = 0.4f.coerceAtLeast(1 - pageOffset.absoluteValue)
+    } else if (pageOffset.absoluteValue <= 1) {
+        scaleY = 0.4f.coerceAtLeast(1 - pageOffset.absoluteValue)
+    }
 }
 
 
